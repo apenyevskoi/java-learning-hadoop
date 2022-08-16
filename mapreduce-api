@@ -1,8 +1,58 @@
-Map(string docid, String text):
-  for each word w in text:
-    Emit(w, 1);
-Reduce(String term, Iterator<Int> values):
-  int sum = 0;
-  for each v in values:
-    sum += v;
-  Emit(term, sum);
+		#WordCount: configure job
+# WordCountJob наследуется от класса Configured и реализовывает интерфейс Tool
+public class WordCountJob extends Configured implements Tool {
+	@Override
+	# в интерфейсе Tool реализуется функция run(), кот будет испол-ся для запуска job
+	public int run(String[] args) thows Exception {
+		#part1
+		#create object Job
+		Job job = Job.getInstance(getConf(), "WordCount");
+		#Define jar for the task
+		#определяет функциональность
+		job.setJarByClass(getClass());
+
+		#part2
+		#DEFINE INPUT DATA
+		#job - объект задачи
+		#path - файл, директория или шаблон like /path/to/dir/test_* класса Path
+		#TextInputFormat reads input data like text file (key - LongWritable, value -Text)
+		#setInputFormatClass устанавливает, какой формат данных будет
+		#TextInputFormat.class - сам формат данных - текст
+		TextInputFormat.addInputPath(job, new Path(args[0]));
+		job.setInputFormatClass(TextInputFormat.class);
+
+		#part3
+		#DEFINE OUTPUT DATA
+		#job - объект задачи
+		#Path - объект выходной директории класса Path
+		#TextOutputFormat.class - формат выходных данных - текст
+		#setOutputKeyClass в качестве ключа передаем текст Text.class
+		#setOutputValueClass в качестве значения целое число IntWritable.class
+		#intWritable.classs - целое чилсло
+		#text.class - text
+		TextOutputFormat.setOutputPath(job, new Path(args[1]));
+		job.setOutputFormatClass(TextOutputFormat.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
+		#если данные промежуточные между mapper и reducer и имеет другой тип данных, не Text.class и IntWritable.class, то
+		#также явно указываем text.class и LongWritable.class
+		#if variable types for map and ruduce are different:
+		job.setMapoutputKeyClass(Text.class);
+		job.setMapOutputValueClass(LongWritable.class);
+
+		#part4
+		#DEFINE MAPPER AND REDUCER CLASS
+		job.setMapperClass(WordCountMapper.class)
+		job.setReducerClass(WordCountReducer.class)
+		#combiner
+		job.setCombinerClass(WordCountReducer.class)
+
+		#конфигурация закончена
+
+		#part5
+		#ЗАПУСК ЗАДАЧИ
+		#waitForCompletion - class для запуска
+		return job.waitForCompletion(true);
+		#true - if success, false - if fail
+	}
+}

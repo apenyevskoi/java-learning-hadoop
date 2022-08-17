@@ -1,58 +1,139 @@
-		#WordCount: configure job
-# WordCountJob наследуется от класса Configured и реализовывает интерфейс Tool
-public class WordCountJob extends Configured implements Tool {
+//ЗАДАЧА: подсчитать количество слов в массиве данных
+
+//WordCount: configure job
+//создаем класс WordCountJob, кот наследуется от класса Configured и реализовывает интерфейс Tool
+
+public class WordCountJob extends Configured implements Tool { //например, org.apache.hadoop.configured 
 	@Override
-	# в интерфейсе Tool реализуется функция run(), кот будет испол-ся для запуска job
+	// в интерфейсе Tool реализуется функция run(), кот будет испол-ся для запуска job
 	public int run(String[] args) thows Exception {
-		#part1
-		#create object Job
+		//part1
+		//create object Job
 		Job job = Job.getInstance(getConf(), "WordCount");
-		#Define jar for the task
-		#определяет функциональность
+		//Define jar for the task
+		//определяет функциональность
 		job.setJarByClass(getClass());
 
-		#part2
-		#DEFINE INPUT DATA
-		#job - объект задачи
-		#path - файл, директория или шаблон like /path/to/dir/test_* класса Path
-		#TextInputFormat reads input data like text file (key - LongWritable, value -Text)
-		#setInputFormatClass устанавливает, какой формат данных будет
-		#TextInputFormat.class - сам формат данных - текст
+		//part2
+		//DEFINE INPUT DATA
+		//job - объект задачи
+		//path - файл, директория или шаблон like /path/to/dir/test_* класса Path
+		//TextInputFormat reads input data like text file (key - LongWritable, value -Text)
+		//setInputFormatClass устанавливает, какой формат данных будет
+		//TextInputFormat.class - сам формат данных - текст
 		TextInputFormat.addInputPath(job, new Path(args[0]));
 		job.setInputFormatClass(TextInputFormat.class);
 
-		#part3
-		#DEFINE OUTPUT DATA
-		#job - объект задачи
-		#Path - объект выходной директории класса Path
-		#TextOutputFormat.class - формат выходных данных - текст
-		#setOutputKeyClass в качестве ключа передаем текст Text.class
-		#setOutputValueClass в качестве значения целое число IntWritable.class
-		#intWritable.classs - целое чилсло
-		#text.class - text
+		//part3
+		//DEFINE OUTPUT DATA
+		//job - объект задачи
+		//Path - объект выходной директории класса Path
+		//TextOutputFormat.class - формат выходных данных - текст
+		//setOutputKeyClass в качестве ключа передаем текст Text.class
+		//setOutputValueClass в качестве значения целое число IntWritable.class
+		//intWritable.classs - целое чилсло
+		//text.class - text
 		TextOutputFormat.setOutputPath(job, new Path(args[1]));
 		job.setOutputFormatClass(TextOutputFormat.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(IntWritable.class);
-		#если данные промежуточные между mapper и reducer и имеет другой тип данных, не Text.class и IntWritable.class, то
-		#также явно указываем text.class и LongWritable.class
-		#if variable types for map and ruduce are different:
-		job.setMapoutputKeyClass(Text.class);
+		//если данные промежуточные между mapper и reducer и имеет другой тип данных, не Text.class и IntWritable.class, то
+		//также явно указываем text.class и LongWritable.class
+		//if variable types for map and ruduce are different:
+		job.setMapOutputKeyClass(Text.class);
 		job.setMapOutputValueClass(LongWritable.class);
 
-		#part4
-		#DEFINE MAPPER AND REDUCER CLASS
+		//part4
+		//DEFINE MAPPER AND REDUCER CLASS
 		job.setMapperClass(WordCountMapper.class)
 		job.setReducerClass(WordCountReducer.class)
-		#combiner
+		//combiner
 		job.setCombinerClass(WordCountReducer.class)
 
-		#конфигурация закончена
+		//конфигурация закончена
 
-		#part5
-		#ЗАПУСК ЗАДАЧИ
-		#waitForCompletion - class для запуска
+		//part5
+		//ЗАПУСК ЗАДАЧИ
+		//waitForCompletion - class для запуска
 		return job.waitForCompletion(true);
-		#true - if success, false - if fail
+		//true - if success, false - if fail
+	}
+	
+	public static void main(String[] args) throws Exception {
+		int exitCode = ToolRunner.run( new WordCountJob(), args);
+		System.exit(exitCode);
 	}
 }
+
+//КЛАСС MAPPER
+//public class Mapper <KEYIN, VALUEIN, KEYOUT, VALUEOUT>, где KEYOUT, VALUEOUT - промежуточные значения, они равны типам выходных ключ/значение Reducer
+//KEYIN, VALUEIN, KEYOUT, VALUEOUT типы не могут быть произвольными, должны быть 
+//взяты из пакета org.apache.hadoop.io, в кот реализованны типы IntWritable (целове число), Text, ImmutableBytesWritable (массив из байтов)
+//метод
+//void map(KEYIN key, VALUEIN value, Context context){}
+
+//наш новый класс WordCountMapper наследуется от класса Mapper<>
+public class WordCountMapper
+		extends Mapper<LongWritable, Text, Text, IntWritable>{
+		//LongWritable - номер строки, тип ключа входных данных
+		//Text - сама страка типа текст, тип значения входных данных
+		//Text - тип ключа промежуточных данных
+		//IntWritable - тип значения промежуточных данных
+		
+		//переменная статик, будет хранить 1
+		private final static IntWritable one = new IntWritable(1);
+		//переменная типа текст, будет хранить ключ
+		private final Text word = new Text();
+		
+		@override
+		//функция
+		//LongWritable входной ключ 
+		//Text входное значение
+		protected void map(LongWritable key, Text value, Context context)
+				throwns IOException, InterruptedException {
+			//токенайзер разбивает value по словам, key здесь игнорируется
+			StringTokenizer tokenizer = new StringTokenizer(value.toString());
+			
+			//перебираем в цикле все слова из строки
+			//ключу word присваем каждое слово
+			//context.write() записываем пару ключ-значение через метод write через context
+			while (tokenizer.hasMoreTokens()) {
+				word.set(tokenizer.nextToken());
+				context.write(word, one);
+			}
+		}
+		
+}
+//связь значений переменных в Mapper и Reducer
+//Типы входных ключа и значения у Reducer совпадают с типами его выходных ключа и значения
+//Типы выходных ключа и значения у Mapper совпадают с типами выходных ключа и значения у Reducer
+//Тип входного ключа Reducer совпадает с типом его выходного ключа
+
+//КЛАСС REDUCER
+//public class Reducer<KEYIN, VALUEIN, KEYOUT, VALUEOUT> такие же ключи, как и mapper, иначе выдаст ошибку
+//метод
+//void reduce(KEYIN key, Iterable <VALUEIN> values, Context context)
+
+//наш новый класс WordCountReducer наследуется от класса Reducer
+public class WordCountReducer
+	//тип входных значений в Reducer равен типам выходных
+	extends Reducer<Text, IntWritable, Text, IntWritable> {
+	@Override
+	protected void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+		int sum = 0;
+		for (IntWritable value : values) {
+			sum += value.get();
+		}
+		context.write(key, new IntWritable(sum));
+	}
+}
+
+//Reducer в качестве combiner
+//Framework MapReduce  не гарантирует вызов Combiner
+//Типы key/value в output у Reducer и Mapper РАВНЫ
+
+//типы данных в Hadoop
+//Writable - определяет протокл де-сериализации. Каждый тип в Hadoop должен быть Writable
+//WritableComprable - определяет порядок сортировки. Все ключи дожны быть WritableComprable (но не значения)
+//Text, IntWritable, LongWritable etc.
+//SequenceFiles - бинарно-закодированная последовательность пар key/value

@@ -7,4 +7,5 @@ R script generates file with 100mln lines in format <Key \t Value\n>, Key - one 
 File simulates Mapper output file.
 File's size of ~1.2GB is being generating.
 
-Python script simulates Reducer in Hadoop MapReduce. Count unique words.
+Python scripts countMap.py and countReduce.py simulates Reducer in Hadoop MapReduce. Count unique words. countMap.py splits lines to words, countReduce.py counts words.
+Python script MapReduce-one-function.py combines splitting and counting functions.
